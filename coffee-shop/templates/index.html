@@ -1,0 +1,133 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Coffee Shop</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;max-width:900px;margin:2rem auto;padding:1rem}
+    h1,h2{margin:0.5rem 0}
+    button{margin-top:0.5rem}
+    label{display:inline-block;margin:0.2rem 0}
+  </style>
+</head>
+<body>
+  <h1>Coffee Shop</h1>
+  <section>
+    <h2>Menu</h2>
+    <ul id="menu"></ul>
+  </section>
+  <section>
+    <h2>Manage Menu</h2>
+    <div>
+      <input id="new-name" placeholder="Name" />
+      <input id="new-price" placeholder="Price" type="number" step="0.01" />
+      <input id="new-inv" placeholder="Inventory" type="number" />
+      <button id="add-item">Add Item</button>
+    </div>
+    <div id="menu-admin"></div>
+  </section>
+  <section>
+    <h2>New Order</h2>
+    <input id="customer" placeholder="Customer name" />
+    <div id="menu-checkboxes"></div>
+    <button id="place">Place Order</button>
+    <p id="result"></p>
+  </section>
+  <section>
+    <h2>Recent Orders</h2>
+    <ul id="orders"></ul>
+  </section>
+<script>
+async function loadMenu(){
+  const res = await fetch('/api/menu');
+  const menu = await res.json();
+  const menuEl = document.getElementById('menu');
+  const cbEl = document.getElementById('menu-checkboxes');
+  const adminEl = document.getElementById('menu-admin');
+  menuEl.innerHTML = '';
+  cbEl.innerHTML = '';
+  adminEl.innerHTML = '';
+    menu.forEach(item => {
+    const li = document.createElement('li');
+    li.textContent = `${item.name} — $${item.price.toFixed(2)} — Inv: ${item.inventory||0}`;
+    menuEl.appendChild(li);
+    const label = document.createElement('label');
+    const input = document.createElement('input');
+    input.type = 'checkbox';
+    input.value = item.id;
+    if ((item.inventory||0) <= 0) {
+      input.disabled = true;
+      label.appendChild(document.createTextNode(' (out of stock) '));
+    }
+    label.appendChild(input);
+    label.appendChild(document.createTextNode(' ' + item.name + ' ($' + item.price.toFixed(2) + ')'));
+    cbEl.appendChild(label);
+    cbEl.appendChild(document.createElement('br'));
+    // admin row
+    const row = document.createElement('div');
+    row.textContent = `${item.name} — $${item.price.toFixed(2)} — Inv: ${item.inventory||0}`;
+    const edit = document.createElement('button');
+    edit.textContent = 'Edit';
+    edit.onclick = () => editItem(item);
+    const del = document.createElement('button');
+    del.textContent = 'Delete';
+    del.onclick = () => deleteItem(item.id);
+    row.appendChild(edit);
+    row.appendChild(del);
+    adminEl.appendChild(row);
+  });
+}
+async function editItem(item){
+  const name = prompt('Name', item.name);
+  if (name === null) return;
+  const price = prompt('Price', item.price);
+  if (price === null) return;
+  const inv = prompt('Inventory', item.inventory||0);
+  if (inv === null) return;
+  const res = await fetch(`/api/menu/${item.id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, price: Number(price), inventory: Number(inv)})});
+  if (res.ok) loadMenu();
+}
+async function deleteItem(id){
+  if (!confirm('Delete item?')) return;
+  const res = await fetch(`/api/menu/${id}`, {method:'DELETE'});
+  if (res.ok) loadMenu();
+}
+document.getElementById('add-item').onclick = async () => {
+  const name = document.getElementById('new-name').value.trim();
+  const price = Number(document.getElementById('new-price').value) || 0;
+  const inventory = Number(document.getElementById('new-inv').value) || 0;
+  if (!name) return alert('name required');
+  const res = await fetch('/api/menu', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, price, inventory})});
+  if (res.ok) {
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-price').value = '';
+    document.getElementById('new-inv').value = '';
+    loadMenu();
+  }
+}
+async function loadOrders(){
+  const res = await fetch('/api/orders');
+  const orders = await res.json();
+  const el = document.getElementById('orders');
+  el.innerHTML = '';
+  orders.forEach(o => {
+    const li = document.createElement('li');
+    li.textContent = `${o.created_at} — ${o.customer_name} — Items: ${o.items || 'none'} — $${(o.total||0).toFixed(2)}`;
+    el.appendChild(li);
+  });
+}
+document.getElementById('place').onclick = async () => {
+  const checkboxes = document.querySelectorAll('#menu-checkboxes input[type=checkbox]:checked');
+  const items = Array.from(checkboxes).map(c => Number(c.value));
+  const name = document.getElementById('customer').value || 'Guest';
+  const res = await fetch('/api/orders', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({customer_name: name, items})});
+  const data = await res.json();
+  document.getElementById('result').textContent = `Placed. Total: $${(data.total||0).toFixed(2)}`;
+  loadOrders();
+};
+loadMenu();
+loadOrders();
+</script>
+</body>
+</html>
