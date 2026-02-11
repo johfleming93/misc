@@ -135,6 +135,7 @@ def api_menu_item(item_id):
         return jsonify({'status': 'deleted'})
 
 
+
 @app.route('/api/orders', methods=['GET', 'POST'])
 def api_orders():
     db = get_db()
@@ -149,7 +150,6 @@ def api_orders():
             return jsonify({'status': 'ok', 'total': total}), 201
 
         counts = Counter(items)
-        # fetch pricing and inventory for requested items
         keys = list(counts.keys())
         placeholders = ','.join('?' * len(keys))
         cur = db.execute(f'SELECT id, name, price, inventory FROM menu_items WHERE id IN ({placeholders})', keys)
@@ -158,7 +158,6 @@ def api_orders():
         inventory = {row['id']: row['inventory'] for row in rows}
         names = {row['id']: row['name'] for row in rows}
 
-        # check inventory availability
         insufficient = []
         for item_id, qty in counts.items():
             inv = inventory.get(item_id)
@@ -169,7 +168,6 @@ def api_orders():
         if insufficient:
             return jsonify({'error': 'insufficient_inventory', 'details': insufficient}), 400
 
-        # compute total and decrement inventory
         total = 0.0
         for item_id, qty in counts.items():
             total += prices.get(item_id, 0) * qty
@@ -182,7 +180,16 @@ def api_orders():
         rows = db.execute('SELECT id, customer_name, items, total, created_at FROM orders ORDER BY created_at DESC').fetchall()
         return jsonify([dict(r) for r in rows])
 
+# Inventory alert endpoint
+@app.route('/api/inventory-alert', methods=['GET'])
+def inventory_alert():
+    db = get_db()
+    threshold = int(request.args.get('threshold', 5))
+    rows = db.execute('SELECT id, name, inventory FROM menu_items WHERE inventory <= ?', (threshold,)).fetchall()
+    return jsonify([dict(r) for r in rows])
+
 
 if __name__ == '__main__':
-    init_db()
+    with app.app_context():
+        init_db()
     app.run(debug=True, port=5000)

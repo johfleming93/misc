@@ -4,40 +4,47 @@
   <meta charset="utf-8">
   <title>Coffee Shop</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;max-width:900px;margin:2rem auto;padding:1rem}
-    h1,h2{margin:0.5rem 0}
-    button{margin-top:0.5rem}
-    label{display:inline-block;margin:0.2rem 0}
-  </style>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/bg.css">
 </head>
 <body>
-  <h1>Coffee Shop</h1>
-  <section>
-    <h2>Menu</h2>
-    <ul id="menu"></ul>
-  </section>
-  <section>
-    <h2>Manage Menu</h2>
-    <div>
-      <input id="new-name" placeholder="Name" />
-      <input id="new-price" placeholder="Price" type="number" step="0.01" />
-      <input id="new-inv" placeholder="Inventory" type="number" />
-      <button id="add-item">Add Item</button>
-    </div>
-    <div id="menu-admin"></div>
-  </section>
-  <section>
-    <h2>New Order</h2>
-    <input id="customer" placeholder="Customer name" />
-    <div id="menu-checkboxes"></div>
-    <button id="place">Place Order</button>
-    <p id="result"></p>
-  </section>
-  <section>
-    <h2>Recent Orders</h2>
-    <ul id="orders"></ul>
-  </section>
+  <div class="bg-animated">
+    <div class="circle circle1"></div>
+    <div class="circle circle2"></div>
+    <div class="circle circle3"></div>
+  </div>
+  <div class="container" style="position:relative; z-index:1;">
+    <h1>Coffee Shop</h1>
+    <section>
+      <h2>Menu</h2>
+      <ul id="menu" style="list-style:none;padding:0;"></ul>
+    </section>
+    <section>
+      <h2>Manage Menu</h2>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+        <input id="new-name" placeholder="Name" />
+        <input id="new-price" placeholder="Price" type="number" step="0.01" />
+        <input id="new-inv" placeholder="Inventory" type="number" />
+        <button id="add-item">Add Item</button>
+      </div>
+      <div id="menu-admin"></div>
+    </section>
+    <section>
+      <h2>Place Order</h2>
+      <form id="order-form" style="background:#f9f9f9;border-radius:8px;padding:1rem;margin-bottom:1rem;">
+        <div style="margin-bottom:0.5rem;">
+          <input id="customer" placeholder="Customer name" style="width:200px;" />
+        </div>
+        <div id="menu-checkboxes" style="margin-bottom:0.5rem;"></div>
+        <button id="place" type="button">Place Order</button>
+        <p id="result" style="margin-top:0.5rem;"></p>
+      </form>
+    </section>
+    <section>
+      <h2>Recent Orders</h2>
+      <ul id="orders"></ul>
+    </section>
+  </div>
 <script>
 async function loadMenu(){
   const res = await fetch('/api/menu');

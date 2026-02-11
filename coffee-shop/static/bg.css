@@ -1,0 +1,40 @@
+body {
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+.bg-animated {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+.bg-animated .circle {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.18;
+  animation: move 12s infinite linear;
+}
+.bg-animated .circle1 {
+  width: 400px; height: 400px;
+  background: #ffe4b5;
+  left: 10vw; top: 10vh;
+  animation-delay: 0s;
+}
+.bg-animated .circle2 {
+  width: 300px; height: 300px;
+  background: #b3e5fc;
+  left: 60vw; top: 20vh;
+  animation-delay: 2s;
+}
+.bg-animated .circle3 {
+  width: 250px; height: 250px;
+  background: #c8e6c9;
+  left: 30vw; top: 60vh;
+  animation-delay: 4s;
+}
+@keyframes move {
+  0% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(40px) scale(1.05); }
+  100% { transform: translateY(0) scale(1); }
+}
