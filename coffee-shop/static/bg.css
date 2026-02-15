@@ -1,40 +1,57 @@
-body {
-  min-height: 100vh;
-  position: relative;
-  overflow-x: hidden;
-}
+/* Polished animated background
+   - Subtle blurred blobs with mix-blend-mode for a modern look
+   - Low opacity and slow movement to avoid distraction
+*/
+body { min-height: 100vh; position: relative; overflow-x: hidden; background: radial-gradient(1200px 600px at 10% 10%, rgba(245,158,11,0.06), transparent 8%), radial-gradient(900px 400px at 90% 80%, rgba(249,115,22,0.04), transparent 8%); }
+
 .bg-animated {
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100vh;
   z-index: 0;
   pointer-events: none;
+  overflow: hidden;
 }
+
+/* Large blurred blobs */
 .bg-animated .circle {
   position: absolute;
   border-radius: 50%;
   opacity: 0.18;
-  animation: move 12s infinite linear;
+  filter: blur(36px);
+  transform-origin: center;
+  mix-blend-mode: screen;
+  animation: float 16s ease-in-out infinite;
 }
+
 .bg-animated .circle1 {
-  width: 400px; height: 400px;
-  background: #ffe4b5;
-  left: 10vw; top: 10vh;
+  width: 520px; height: 520px;
+  background: radial-gradient(circle at 30% 30%, #ffedd5, #f59e0b 60%);
+  left: 6vw; top: 6vh;
   animation-delay: 0s;
 }
 .bg-animated .circle2 {
-  width: 300px; height: 300px;
-  background: #b3e5fc;
-  left: 60vw; top: 20vh;
-  animation-delay: 2s;
+  width: 420px; height: 420px;
+  background: radial-gradient(circle at 30% 30%, #dbeafe, #60a5fa 60%);
+  left: 62vw; top: 18vh;
+  animation-delay: 3s;
 }
 .bg-animated .circle3 {
-  width: 250px; height: 250px;
-  background: #c8e6c9;
-  left: 30vw; top: 60vh;
-  animation-delay: 4s;
+  width: 360px; height: 360px;
+  background: radial-gradient(circle at 30% 30%, #d1fae5, #34d399 60%);
+  left: 34vw; top: 60vh;
+  animation-delay: 6s;
 }
-@keyframes move {
-  0% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(40px) scale(1.05); }
-  100% { transform: translateY(0) scale(1); }
+
+/* subtle motion */
+@keyframes float {
+  0% { transform: translateY(0) scale(1); opacity: 0.18; }
+  25% { transform: translateY(-24px) scale(1.03); opacity: 0.2; }
+  50% { transform: translateY(0) scale(1.06); opacity: 0.16; }
+  75% { transform: translateY(24px) scale(1.03); opacity: 0.2; }
+  100% { transform: translateY(0) scale(1); opacity: 0.18; }
+}
+
+/* make sure background doesn't capture pointer events on mobile */
+@media (prefers-reduced-motion: reduce) {
+  .bg-animated .circle { animation: none; }
 }
