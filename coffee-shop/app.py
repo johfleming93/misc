@@ -2,20 +2,39 @@ import sqlite3
 from flask import Flask, g, jsonify, request, render_template, abort
 from collections import Counter
 import os
+import threading
+import time
+import logging
 
+# Configuration
 DATABASE = os.path.join(os.path.dirname(__file__), 'coffee.db')
+# Interval (seconds) between automatic DB updates (default: 24 hours)
+BACKGROUND_UPDATE_INTERVAL = int(os.getenv('DB_UPDATE_INTERVAL', 60 * 60 * 24))
+
 app = Flask(__name__, template_folder='templates', static_folder='static')
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def get_db():
+    """Return a sqlite3 connection unique to the request context (stored in flask.g)."""
     db = getattr(g, '_database', None)
     if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
+        # check_same_thread=False to allow using the connection safely if a background thread
+        # touches the DB while the app is running. We still prefer to use app.app_context()
+        # for background tasks to get their own connection context.
+        db = g._database = sqlite3.connect(DATABASE, check_same_thread=False)
         db.row_factory = sqlite3.Row
     return db
 
 
 def init_db():
+    """
+    Ensure the database schema and seed data are present.
+    Safe to call repeatedly.
+    """
+    logger.info("Running init_db to ensure schema & seed data.")
     db = get_db()
     cursor = db.cursor()
     cursor.executescript('''
@@ -34,9 +53,11 @@ def init_db():
     );
     ''')
     db.commit()
+
     # ensure `inventory` column exists for older DBs
     cols = [r['name'] for r in db.execute("PRAGMA table_info(menu_items)").fetchall()]
     if 'inventory' not in cols:
+        logger.info("Adding missing 'inventory' column to menu_items.")
         db.execute('ALTER TABLE menu_items ADD COLUMN inventory INTEGER DEFAULT 0')
         db.commit()
 
@@ -48,6 +69,7 @@ def init_db():
             ('Cappuccino', 3.0, 15),
             ('Tea', 2.0, 25),
         ]
+        logger.info("Seeding default menu items.")
         db.executemany('INSERT INTO menu_items (name, price, inventory) VALUES (?, ?, ?)', items)
         db.commit()
 
@@ -61,6 +83,7 @@ def close_connection(exception):
 
 @app.route('/')
 def index():
+    # Ensure DB exists/seeded before serving the UI
     init_db()
     return render_template('index.html')
 
@@ -77,11 +100,11 @@ def api_menu():
         try:
             price = float(data.get('price', 0))
         except (TypeError, ValueError):
-            price = 0.0
+            return jsonify({'error': 'invalid price'}), 400
         try:
             inventory = int(data.get('inventory', 0))
         except (TypeError, ValueError):
-            inventory = 0
+            return jsonify({'error': 'invalid inventory'}), 400
         if not name:
             return jsonify({'error': 'name required'}), 400
         cur = db.execute('INSERT INTO menu_items (name, price, inventory) VALUES (?, ?, ?)', (name, price, inventory))
@@ -98,13 +121,16 @@ def api_menu_item(item_id):
         data = request.get_json() or {}
         name = data.get('name')
         try:
-            price = float(data.get('price'))
+            price = data.get('price')
+            price = float(price) if price is not None else None
         except (TypeError, ValueError):
-            price = None
+            return jsonify({'error': 'invalid price'}), 400
         try:
-            inventory = int(data.get('inventory'))
+            inventory = data.get('inventory')
+            inventory = int(inventory) if inventory is not None else None
         except (TypeError, ValueError):
-            inventory = None
+            return jsonify({'error': 'invalid inventory'}), 400
+
         # build update
         parts = []
         params = []
@@ -135,7 +161,6 @@ def api_menu_item(item_id):
         return jsonify({'status': 'deleted'})
 
 
-
 @app.route('/api/orders', methods=['GET', 'POST'])
 def api_orders():
     db = get_db()
@@ -143,11 +168,19 @@ def api_orders():
         data = request.get_json() or {}
         name = data.get('customer_name', 'Guest')
         items = data.get('items', [])
+        if not isinstance(items, list):
+            return jsonify({'error': 'items must be a list of menu item ids'}), 400
         if not items:
             total = 0.0
             db.execute('INSERT INTO orders (customer_name, items, total) VALUES (?, ?, ?)', (name, '', total))
             db.commit()
             return jsonify({'status': 'ok', 'total': total}), 201
+
+        # Normalize item ids to ints and validate
+        try:
+            items = [int(i) for i in items]
+        except (TypeError, ValueError):
+            return jsonify({'error': 'items must be a list of integers (menu item ids)'}), 400
 
         counts = Counter(items)
         keys = list(counts.keys())
@@ -180,16 +213,61 @@ def api_orders():
         rows = db.execute('SELECT id, customer_name, items, total, created_at FROM orders ORDER BY created_at DESC').fetchall()
         return jsonify([dict(r) for r in rows])
 
+
 # Inventory alert endpoint
 @app.route('/api/inventory-alert', methods=['GET'])
 def inventory_alert():
     db = get_db()
-    threshold = int(request.args.get('threshold', 5))
+    threshold_str = request.args.get('threshold', '5')
+    try:
+        threshold = int(threshold_str)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'invalid threshold'}), 400
     rows = db.execute('SELECT id, name, inventory FROM menu_items WHERE inventory <= ?', (threshold,)).fetchall()
     return jsonify([dict(r) for r in rows])
 
 
+@app.route('/api/update-db', methods=['POST'])
+def trigger_update_db():
+    """Manual endpoint to trigger DB init/seed. Useful for webhooks or admin actions."""
+    try:
+        with app.app_context():
+            init_db()
+        return jsonify({'status': 'ok'}), 200
+    except Exception as e:
+        logger.exception("Error running manual DB update")
+        return jsonify({'error': str(e)}), 500
+
+
+def _periodic_db_updater(interval_seconds):
+    """Background thread job that runs init_db() every interval_seconds with app context."""
+    logger.info("Started periodic DB updater thread (interval=%s seconds).", interval_seconds)
+    while True:
+        try:
+            with app.app_context():
+                init_db()
+        except Exception:
+            logger.exception("Periodic DB updater failed")
+        time.sleep(interval_seconds)
+
+
+def start_periodic_db_updates(interval_seconds=BACKGROUND_UPDATE_INTERVAL):
+    """
+    Start a daemon thread to periodically call init_db.
+    This function should only be called once (typically on startup).
+    """
+    thread = threading.Thread(target=_periodic_db_updater, args=(interval_seconds,))
+    thread.daemon = True
+    thread.start()
+    return thread
+
+
 if __name__ == '__main__':
+    # Initialize DB now
     with app.app_context():
         init_db()
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug:
+        start_periodic_db_updates()
+
+    # Run server
     app.run(debug=True, port=5000)
