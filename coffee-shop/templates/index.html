@@ -6,135 +6,448 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="stylesheet" href="/static/style.css">
   <link rel="stylesheet" href="/static/bg.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --muted:#94a3b8;
+      --accent:#f59e0b;
+      --accent-2:#f97316;
+      --glass: rgba(255,255,255,0.04);
+      --success:#10b981;
+      --danger:#ef4444;
+      color-scheme: dark;
+    }
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
+    body{background:linear-gradient(180deg,#071029 0%, #071018 60%, #04101a 100%); color:#e6eef8;}
+    .container{max-width:1100px;margin:2.5rem auto;padding:2rem;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:12px; box-shadow: 0 6px 30px rgba(2,6,23,0.7);}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;}
+    header h1{margin:0; font-size:1.5rem; letter-spacing:0.3px;}
+    .top-actions{display:flex;gap:0.5rem;align-items:center;}
+    .search { padding:0.5rem 0.75rem;border-radius:8px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);color:var(--muted); width:220px;}
+    .layout{display:grid;grid-template-columns: 1fr 360px; gap:1rem;}
+    @media (max-width:960px){ .layout{grid-template-columns:1fr; } .top-actions{flex-wrap:wrap;} .search{width:100%;} }
+    /* Menu grid */
+    .menu-grid{display:grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap:1rem;}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:1rem;border-radius:10px; border:1px solid rgba(255,255,255,0.03); display:flex;flex-direction:column; gap:0.5rem;}
+    .card .row{display:flex;justify-content:space-between;align-items:center;}
+    .price{font-weight:700;color:var(--accent);}
+    .muted{color:var(--muted);font-size:0.9rem;}
+    .badge{background:rgba(255,255,255,0.03);padding:0.25rem 0.5rem;border-radius:999px;font-size:0.8rem;}
+    .card input[type=number]{width:70px;padding:0.35rem;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit;}
+    .btn{background:linear-gradient(90deg,var(--accent),var(--accent-2));border:none;color:#07101a;padding:0.5rem 0.75rem;border-radius:8px;cursor:pointer;font-weight:600;}
+    .btn:disabled{opacity:0.5;cursor:not-allowed;}
+    .secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted); padding:0.45rem 0.6rem;border-radius:8px;cursor:pointer;}
+    .admin {margin-top:0.75rem;background:rgba(255,255,255,0.02);padding:0.75rem;border-radius:8px;border:1px solid rgba(255,255,255,0.02);}
+    .admin .row{display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;}
+    .orders-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0.5rem;}
+    .order-item{background:rgba(255,255,255,0.02);padding:0.7rem;border-radius:8px;border:1px solid rgba(255,255,255,0.02);display:flex;justify-content:space-between;align-items:center;}
+    .cart{position:sticky;top:1.2rem;padding:1rem;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));border-radius:10px;border:1px solid rgba(255,255,255,0.03);}
+    .cart h3{margin:0 0 0.5rem 0;}
+    .cart-list{list-style:none;padding:0;margin:0;max-height:200px;overflow:auto;}
+    .cart-list li{display:flex;justify-content:space-between;gap:0.5rem;padding:0.35rem 0;border-bottom:1px solid rgba(255,255,255,0.01);}
+    .small{font-size:0.9rem;color:var(--muted);}
+    .toast{position:fixed;right:1rem;bottom:1rem;background:#0b1220;border-left:4px solid var(--accent);padding:0.75rem 1rem;border-radius:8px;color:#fff;box-shadow:0 8px 30px rgba(2,6,23,0.7);}
+    .controls{display:flex;gap:0.5rem;align-items:center;}
+    .danger{background:linear-gradient(90deg,#f97316,#ef4444); color:white;border:none;padding:0.45rem 0.6rem;border-radius:8px;cursor:pointer;}
+    label.checkbox{display:flex;gap:0.5rem;align-items:center;}
+    .empty{color:var(--muted);padding:1rem;text-align:center;border-radius:8px;background:rgba(255,255,255,0.01);}
+  </style>
 </head>
 <body>
-  <div class="bg-animated">
+  <div class="bg-animated" aria-hidden="true">
     <div class="circle circle1"></div>
     <div class="circle circle2"></div>
     <div class="circle circle3"></div>
   </div>
+
   <div class="container" style="position:relative; z-index:1;">
-    <h1>Coffee Shop</h1>
-    <section>
-      <h2>Menu</h2>
-      <ul id="menu" style="list-style:none;padding:0;"></ul>
-    </section>
-    <section>
-      <h2>Manage Menu</h2>
-      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
-        <input id="new-name" placeholder="Name" />
-        <input id="new-price" placeholder="Price" type="number" step="0.01" />
-        <input id="new-inv" placeholder="Inventory" type="number" />
-        <button id="add-item">Add Item</button>
+    <header>
+      <div>
+        <h1>Coffee Shop</h1>
+        <div class="small">Fresh brews • friendly service • real smiles</div>
       </div>
-      <div id="menu-admin"></div>
-    </section>
-    <section>
-      <h2>Place Order</h2>
-      <form id="order-form" style="background:#f9f9f9;border-radius:8px;padding:1rem;margin-bottom:1rem;">
-        <div style="margin-bottom:0.5rem;">
-          <input id="customer" placeholder="Customer name" style="width:200px;" />
+      <div class="top-actions">
+        <input id="search" class="search" placeholder="Search menu..." />
+        <button id="refresh" class="secondary" title="Reload menu">Refresh</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <main>
+        <section aria-labelledby="menu-heading">
+          <h2 id="menu-heading">Menu</h2>
+          <div id="menu" class="menu-grid" aria-live="polite"></div>
+          <div id="menu-empty" class="empty" style="display:none;">No menu items yet — add some below.</div>
+        </section>
+
+        <section style="margin-top:1rem;" aria-labelledby="orders-heading">
+          <h2 id="orders-heading">Recent Orders</h2>
+          <ul id="orders" class="orders-list" aria-live="polite"></ul>
+        </section>
+      </main>
+
+      <aside>
+        <div class="cart" aria-labelledby="cart-heading">
+          <h3 id="cart-heading">Cart</h3>
+          <ul id="cart-list" class="cart-list"></ul>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.5rem;">
+            <div class="small">Total</div>
+            <div id="cart-total" style="font-weight:700;">$0.00</div>
+          </div>
+          <div style="margin-top:0.75rem;display:flex;gap:0.5rem;">
+            <input id="customer" placeholder="Customer name" style="flex:1;padding:0.5rem;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit;" />
+            <button id="place" class="btn" type="button" disabled>Place Order</button>
+          </div>
+          <p id="result" style="margin-top:0.5rem;" class="small"></p>
         </div>
-        <div id="menu-checkboxes" style="margin-bottom:0.5rem;"></div>
-        <button id="place" type="button">Place Order</button>
-        <p id="result" style="margin-top:0.5rem;"></p>
-      </form>
-    </section>
-    <section>
-      <h2>Recent Orders</h2>
-      <ul id="orders"></ul>
-    </section>
+
+        <div class="admin" style="margin-top:1rem;">
+          <h3 style="margin:0 0 0.5rem 0;">Manage Menu</h3>
+          <div id="menu-admin"></div>
+          <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:0.75rem 0;">
+          <div style="display:flex;gap:0.5rem;flex-direction:column;">
+            <input id="new-name" placeholder="Name" />
+            <input id="new-price" placeholder="Price" type="number" step="0.01" />
+            <input id="new-inv" placeholder="Inventory" type="number" />
+            <div style="display:flex;gap:0.5rem;">
+              <button id="add-item" class="btn">Add Item</button>
+              <button id="clear-cart" class="secondary">Clear Cart</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
   </div>
+
+  <div id="toast-wrap" aria-live="polite" style="position:fixed;right:1rem;bottom:1rem;z-index:60;"></div>
+
 <script>
-async function loadMenu(){
-  const res = await fetch('/api/menu');
-  const menu = await res.json();
-  const menuEl = document.getElementById('menu');
-  const cbEl = document.getElementById('menu-checkboxes');
-  const adminEl = document.getElementById('menu-admin');
-  menuEl.innerHTML = '';
-  cbEl.innerHTML = '';
-  adminEl.innerHTML = '';
-    menu.forEach(item => {
+/*
+  Improved UI JS:
+  - Renders menu as cards with quantity controls
+  - Local cart state with quantities and totals
+  - Inline admin editing (in-form) rather than prompts
+  - Search and refresh
+  - Keeps same API endpoints so server doesn't need changes
+*/
+
+let menuData = [];
+let cart = [];
+
+function showToast(message, ms = 3000){
+  const wrap = document.getElementById('toast-wrap');
+  const div = document.createElement('div');
+  div.className = 'toast';
+  div.textContent = message;
+  wrap.appendChild(div);
+  setTimeout(()=>{ div.style.opacity = '0'; div.addEventListener('transitionend', ()=>div.remove()); }, ms - 400);
+  setTimeout(()=>{ if(div.parentNode) div.remove(); }, ms);
+}
+
+function formatMoney(n){ return `$${(n||0).toFixed(2)}`; }
+
+function updateCartUI(){
+  const list = document.getElementById('cart-list');
+  const totalEl = document.getElementById('cart-total');
+  list.innerHTML = '';
+  let total = 0;
+  cart.forEach(item=>{
     const li = document.createElement('li');
-    li.textContent = `${item.name} — $${item.price.toFixed(2)} — Inv: ${item.inventory||0}`;
-    menuEl.appendChild(li);
-    const label = document.createElement('label');
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.value = item.id;
-    if ((item.inventory||0) <= 0) {
-      input.disabled = true;
-      label.appendChild(document.createTextNode(' (out of stock) '));
+    li.innerHTML = `<div style="flex:1;"><strong>${item.name}</strong><div class="small">Unit: ${formatMoney(item.price)} • Inv: ${item.inventory||0}</div></div>
+                    <div style="display:flex;align-items:center;gap:0.5rem;">
+                      <button class="secondary" data-id="${item.id}" data-action="dec">−</button>
+                      <div style="min-width:28px;text-align:center;">${item.qty}</div>
+                      <button class="btn" data-id="${item.id}" data-action="inc">+</button>
+                      <button class="secondary" data-id="${item.id}" data-action="remove" title="Remove">✕</button>
+                    </div>`;
+    list.appendChild(li);
+    total += item.qty * item.price;
+  });
+  totalEl.textContent = formatMoney(total);
+  document.getElementById('place').disabled = cart.length === 0;
+  const result = document.getElementById('result');
+  result.textContent = '';
+}
+
+document.getElementById('cart-list').addEventListener('click', async (e)=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  const id = Number(btn.dataset.id);
+  const action = btn.dataset.action;
+  const idx = cart.findIndex(x=>x.id===id);
+  if(idx === -1) return;
+  if(action === 'inc'){
+    if((cart[idx].qty || 0) < (cart[idx].inventory || 0)){
+      cart[idx].qty++;
+    } else {
+      showToast('Reached inventory limit');
     }
-    label.appendChild(input);
-    label.appendChild(document.createTextNode(' ' + item.name + ' ($' + item.price.toFixed(2) + ')'));
-    cbEl.appendChild(label);
-    cbEl.appendChild(document.createElement('br'));
-    // admin row
+  } else if(action === 'dec'){
+    cart[idx].qty = Math.max(1, cart[idx].qty - 1);
+  } else if(action === 'remove'){
+    cart.splice(idx,1);
+  }
+  updateCartUI();
+});
+
+async function loadMenu(){
+  try{
+    const res = await fetch('/api/menu');
+    const menu = await res.json();
+    menuData = Array.isArray(menu) ? menu : [];
+    renderMenu(menuData);
+    renderAdmin(menuData);
+    document.getElementById('menu-empty').style.display = menuData.length ? 'none' : 'block';
+  }catch(err){
+    console.error(err);
+    showToast('Failed to load menu');
+  }
+}
+
+function renderMenu(menu){
+  const menuEl = document.getElementById('menu');
+  menuEl.innerHTML = '';
+  const search = document.getElementById('search').value.trim().toLowerCase();
+  const filtered = menu.filter(item => !search || item.name.toLowerCase().includes(search));
+  filtered.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    const inv = item.inventory || 0;
+    div.innerHTML = `
+      <div class="row">
+        <div>
+          <div style="font-weight:700">${item.name}</div>
+          <div class="muted">${inv > 0 ? 'In stock' : 'Out of stock'} • <span class="price">${formatMoney(item.price)}</span></div>
+        </div>
+        <div class="badge">${inv}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <input type="number" min="1" max="${Math.max(1,inv)}" value="1" aria-label="Quantity for ${item.name}" />
+        </div>
+        <div class="controls">
+          <button class="secondary" data-id="${item.id}" data-action="details">Details</button>
+          <button class="btn" data-id="${item.id}" data-action="add" ${inv<=0 ? 'disabled' : ''}>Add to cart</button>
+        </div>
+      </div>
+    `;
+    // events
+    div.querySelector('[data-action=add]').addEventListener('click', (e)=>{
+      const id = Number(e.currentTarget.dataset.id);
+      const qtyInput = div.querySelector('input[type=number]');
+      const qty = Math.max(1, Number(qtyInput.value) || 1);
+      addToCart(id, qty);
+    });
+    div.querySelector('[data-action=details]').addEventListener('click', ()=>{
+      showToast(`${item.name} — ${formatMoney(item.price)} • Inventory: ${inv}`, 2200);
+    });
+    menuEl.appendChild(div);
+  });
+}
+
+function addToCart(id, qty=1){
+  const item = menuData.find(m=>m.id===id);
+  if(!item) return showToast('Item not found');
+  const existing = cart.find(c=>c.id===id);
+  const available = item.inventory || 0;
+  if(existing){
+    if(existing.qty + qty > available) {
+      existing.qty = available;
+      showToast('Added up to available inventory');
+    } else {
+      existing.qty += qty;
+    }
+  } else {
+    cart.push({id: item.id, name: item.name, price: item.price, inventory: available, qty: Math.min(qty, available)});
+  }
+  updateCartUI();
+  showToast(`${item.name} added to cart`);
+}
+
+document.getElementById('search').addEventListener('input', ()=> renderMenu(menuData));
+document.getElementById('refresh').addEventListener('click', ()=> { loadMenu(); loadOrders(); showToast('Refreshed'); });
+
+async function renderAdmin(menu){
+  const adminEl = document.getElementById('menu-admin');
+  adminEl.innerHTML = '';
+  if(!menu.length){
+    adminEl.innerHTML = '<div class="small muted">No items</div>';
+    return;
+  }
+  menu.forEach(item=>{
     const row = document.createElement('div');
-    row.textContent = `${item.name} — $${item.price.toFixed(2)} — Inv: ${item.inventory||0}`;
-    const edit = document.createElement('button');
-    edit.textContent = 'Edit';
-    edit.onclick = () => editItem(item);
-    const del = document.createElement('button');
-    del.textContent = 'Delete';
-    del.onclick = () => deleteItem(item.id);
-    row.appendChild(edit);
-    row.appendChild(del);
+    row.style.display = 'flex';
+    row.style.justifyContent = 'space-between';
+    row.style.alignItems = 'center';
+    row.style.gap = '0.5rem';
+    row.style.marginBottom = '0.5rem';
+    const left = document.createElement('div');
+    left.innerHTML = `<strong>${item.name}</strong><div class="small">${formatMoney(item.price)} • Inv: ${item.inventory||0}</div>`;
+    const right = document.createElement('div');
+    right.style.display = 'flex';
+    right.style.gap = '0.5rem';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'secondary';
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', ()=> showEditForm(item, row));
+    const delBtn = document.createElement('button');
+    delBtn.className = 'danger';
+    delBtn.textContent = 'Delete';
+    delBtn.addEventListener('click', ()=> deleteItem(item.id));
+    right.appendChild(editBtn);
+    right.appendChild(delBtn);
+    row.appendChild(left);
+    row.appendChild(right);
     adminEl.appendChild(row);
   });
 }
-async function editItem(item){
-  const name = prompt('Name', item.name);
-  if (name === null) return;
-  const price = prompt('Price', item.price);
-  if (price === null) return;
-  const inv = prompt('Inventory', item.inventory||0);
-  if (inv === null) return;
-  const res = await fetch(`/api/menu/${item.id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, price: Number(price), inventory: Number(inv)})});
-  if (res.ok) loadMenu();
+
+function showEditForm(item, container){
+  container.innerHTML = '';
+  const form = document.createElement('div');
+  form.style.display = 'flex';
+  form.style.flexDirection = 'column';
+  form.style.gap = '0.4rem';
+  form.innerHTML = `
+    <input name="name" value="${escapeHtml(item.name)}" />
+    <div style="display:flex;gap:0.5rem;">
+      <input name="price" type="number" step="0.01" value="${item.price}" />
+      <input name="inventory" type="number" value="${item.inventory||0}" />
+      <button class="btn save">Save</button>
+      <button class="secondary cancel">Cancel</button>
+    </div>
+  `;
+  form.querySelector('.cancel').addEventListener('click', ()=> renderAdmin(menuData));
+  form.querySelector('.save').addEventListener('click', async ()=>{
+    const name = form.querySelector('input[name=name]').value.trim();
+    const price = Number(form.querySelector('input[name=price]').value) || 0;
+    const inventory = Number(form.querySelector('input[name=inventory]').value) || 0;
+    if(!name) return showToast('Name required');
+    try{
+      const res = await fetch(`/api/menu/${item.id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, price, inventory})});
+      if(res.ok){
+        showToast('Saved');
+        await loadMenu();
+      } else {
+        showToast('Save failed');
+      }
+    }catch(e){
+      console.error(e);
+      showToast('Save failed');
+    }
+  });
+  container.appendChild(form);
 }
-async function deleteItem(id){
-  if (!confirm('Delete item?')) return;
-  const res = await fetch(`/api/menu/${id}`, {method:'DELETE'});
-  if (res.ok) loadMenu();
-}
-document.getElementById('add-item').onclick = async () => {
+
+function escapeHtml(str = ''){ return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+document.getElementById('add-item').addEventListener('click', async ()=>{
   const name = document.getElementById('new-name').value.trim();
   const price = Number(document.getElementById('new-price').value) || 0;
   const inventory = Number(document.getElementById('new-inv').value) || 0;
-  if (!name) return alert('name required');
-  const res = await fetch('/api/menu', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, price, inventory})});
-  if (res.ok) {
-    document.getElementById('new-name').value = '';
-    document.getElementById('new-price').value = '';
-    document.getElementById('new-inv').value = '';
-    loadMenu();
+  if(!name) return alert('name required');
+  try{
+    const res = await fetch('/api/menu', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name, price, inventory})});
+    if(res.ok){
+      document.getElementById('new-name').value = '';
+      document.getElementById('new-price').value = '';
+      document.getElementById('new-inv').value = '';
+      await loadMenu();
+      showToast('Item added');
+    } else {
+      showToast('Failed to add item');
+    }
+  }catch(e){
+    console.error(e);
+    showToast('Failed to add item');
+  }
+});
+
+async function deleteItem(id){
+  if(!confirm('Delete item?')) return;
+  try{
+    const res = await fetch(`/api/menu/${id}`, {method:'DELETE'});
+    if(res.ok){
+      showToast('Deleted');
+      await loadMenu();
+    } else {
+      showToast('Delete failed');
+    }
+  }catch(e){
+    console.error(e);
+    showToast('Delete failed');
   }
 }
+
+// Orders
 async function loadOrders(){
-  const res = await fetch('/api/orders');
-  const orders = await res.json();
+  try{
+    const res = await fetch('/api/orders');
+    const orders = await res.json();
+    renderOrders(Array.isArray(orders) ? orders : []);
+  }catch(e){
+    console.error(e);
+  }
+}
+
+function renderOrders(orders){
   const el = document.getElementById('orders');
   el.innerHTML = '';
-  orders.forEach(o => {
+  if(!orders.length){
+    el.innerHTML = '<li class="empty">No orders yet</li>'; return;
+  }
+  orders.forEach(o=>{
     const li = document.createElement('li');
-    li.textContent = `${o.created_at} — ${o.customer_name} — Items: ${o.items || 'none'} — $${(o.total||0).toFixed(2)}`;
+    li.className = 'order-item';
+    const date = new Date(o.created_at).toLocaleString();
+    li.innerHTML = `<div>
+                      <div><strong>${escapeHtml(o.customer_name || 'Guest')}</strong> <span class="small">• ${date}</span></div>
+                      <div class="small">Items: ${escapeHtml(String(o.items || 'none'))}</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div style="font-weight:700">${formatMoney(o.total||0)}</div>
+                      <div class="small">${o.status || ''}</div>
+                    </div>`;
     el.appendChild(li);
   });
 }
-document.getElementById('place').onclick = async () => {
-  const checkboxes = document.querySelectorAll('#menu-checkboxes input[type=checkbox]:checked');
-  const items = Array.from(checkboxes).map(c => Number(c.value));
-  const name = document.getElementById('customer').value || 'Guest';
-  const res = await fetch('/api/orders', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({customer_name: name, items})});
-  const data = await res.json();
-  document.getElementById('result').textContent = `Placed. Total: $${(data.total||0).toFixed(2)}`;
-  loadOrders();
-};
-loadMenu();
-loadOrders();
+
+// Place Order: keep original API contract (array of ids). If cart includes quantities we repeat IDs.
+document.getElementById('place').addEventListener('click', async ()=>{
+  if(cart.length === 0) return;
+  const name = document.getElementById('customer').value.trim() || 'Guest';
+  // convert cart to array of ids (repeat by qty) to remain compatible with existing backends
+  const items = cart.flatMap(ci => Array(ci.qty).fill(ci.id));
+  try{
+    const res = await fetch('/api/orders', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({customer_name: name, items})});
+    if(res.ok){
+      const data = await res.json();
+      showToast('Order placed');
+      document.getElementById('result').textContent = `Placed. Total: ${formatMoney(data.total||0)}`;
+      cart = [];
+      updateCartUI();
+      await loadOrders();
+      await loadMenu();
+    } else {
+      const err = await res.json().catch(()=>({}));
+      showToast(err.message || 'Order failed');
+    }
+  }catch(e){
+    console.error(e);
+    showToast('Order failed');
+  }
+});
+
+document.getElementById('clear-cart').addEventListener('click', ()=>{ cart = []; updateCartUI(); showToast('Cart cleared'); });
+
+async function initialLoad(){
+  await loadMenu();
+  await loadOrders();
+  updateCartUI();
+}
+initialLoad();
 </script>
 </body>
 </html>
